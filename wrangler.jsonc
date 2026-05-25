@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "haru",
+  "main": "src/index.ts",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "compatibility_date": "2026-05-12",
+  "secrets": {
+    "required": [
+      "GOOGLE_AUTH_CLIENT",
+      "GOOGLE_AUTH_SECRET",
+      "COOKIE_SECRET",
+      "DB_USER_URL",
+      "DB_ADMIN_URL",
+      "DB_ROOT_URL",
+    ]
+  },
+}

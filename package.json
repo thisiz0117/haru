@@ -1,0 +1,19 @@
+{
+  "name": "haru",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@tidbcloud/serverless": "^0.3.0",
+    "arctic": "^3.7.0",
+    "hono": "^4.12.18",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260511.1",
+    "wrangler": "^4.4.0"
+  }
+}
