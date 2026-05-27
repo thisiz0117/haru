@@ -10,4 +10,11 @@ export const initProvider = {
     ),
 }
 
+/*
+  # POST: v1/signup & v1/signin provider checker  
+*/
+export const iss: Record<string, string> = {
+  'https://accounts.google.com': 'google',
+}
+
 export type ProviderType = keyof typeof initProvider
