@@ -295,7 +295,7 @@ signApi.get('/v1/logout', async (c) => {
     await connection.execute('delete from ref_tokens where ref_token = ?', [refTknPayload.jti])
   } catch (e) {
     return c.json({ msg: 'db err', err: e }, 500)
-  }
+  } 
 
   // 쿠키 지워
   deleteCookie(c, 'refresh_token')
