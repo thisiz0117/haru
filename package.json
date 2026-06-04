@@ -2,9 +2,10 @@
   "name": "haru",
   "type": "module",
   "scripts": {
-    "dev" : "bunx run dev:css & bun run dev:wrangler",
-    "dev:css": "@tailwindcss/cli -i ./public/style-i.css -o ./public/style-o.css --watch",
+    "dev" : "dev:css & bun run dev:wrangler",
+    "dev:css": "bunx @tailwindcss/cli -i ./public/style-i.css -o ./public/style-o.css --watch",
     "dev:wrangler": "wrangler dev",
+    "build:css" : "bunx @tailwindcss/cli -i ./public/style-i.css -o ./public/style-o.css",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
