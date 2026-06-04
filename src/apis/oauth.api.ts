@@ -5,7 +5,6 @@ import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie'
 import { Binding } from '..'
 import { connect } from '@tidbcloud/serverless'
 
-
 const oauthApi = new Hono<{ Bindings: Binding }>()
 
 /*
@@ -46,7 +45,6 @@ export interface Claims {
 oauthApi.get('/v1/:provider', async (c) => {
   // create provider instance
   const providerName = c.req.param('provider') as ProviderType
-  console.log(providerName)
   const providerFn = initProvider[providerName]
 
   if (!providerFn) {
@@ -76,11 +74,7 @@ oauthApi.get('/v1/:provider', async (c) => {
 
   // 받아올 권한
   const scopes = ['openid', 'profile']
-  const url = providerInstance.createAuthorizationURL(
-    state,
-    codeVerifier,
-    scopes,
-  )
+  const url = providerInstance.createAuthorizationURL(state, codeVerifier, scopes)
 
   return c.redirect(url, 302)
 }) // GET: api/auth/v1/:provider
@@ -92,7 +86,6 @@ oauthApi.get('/v1/:provider', async (c) => {
 oauthApi.get('/v1/:provider/callback', async (c) => {
   // create provider instance
   const providerName = c.req.param('provider') as ProviderType
-  console.log(providerName)
   const providerFn = initProvider[providerName]
 
   if (!providerFn) {
@@ -100,18 +93,14 @@ oauthApi.get('/v1/:provider/callback', async (c) => {
   }
 
   const providerInstance = providerFn(c)
-  
+
   // get query data
   const queryOfState = c.req.query('state')
   const queryOfCode = c.req.query('code')
 
   // get cookie data
   const cookieOfState = await getSignedCookie(c, c.env.COOKIE_SECRET, 'state')
-  const cookieOfCodeVerifier = await getSignedCookie(
-    c,
-    c.env.COOKIE_SECRET,
-    'codeVerifier',
-  )
+  const cookieOfCodeVerifier = await getSignedCookie(c, c.env.COOKIE_SECRET, 'codeVerifier')
 
   // validate state
   if (queryOfState !== cookieOfState) {
@@ -143,18 +132,12 @@ oauthApi.get('/v1/:provider/callback', async (c) => {
     const claims = arctic.decodeIdToken(idToken) as Claims // <- data
 
     // save claims for cookie
-    await setSignedCookie(
-      c,
-      'temp_claims',
-      JSON.stringify(claims),
-      c.env.COOKIE_SECRET,
-      {
-        httpOnly: true,
-        maxAge: 60 * 10,
-        // secure: true,
-        sameSite: 'Lax',
-      },
-    )
+    await setSignedCookie(c, 'temp_claims', JSON.stringify(claims), c.env.COOKIE_SECRET, {
+      httpOnly: true,
+      maxAge: 60 * 10,
+      // secure: true,
+      sameSite: 'Lax',
+    })
 
     try {
       // create connection
@@ -167,9 +150,9 @@ oauthApi.get('/v1/:provider/callback', async (c) => {
         { arrayMode: false },
       )) as { is_exists: string }[]
 
-      // if not exists user than create user
+      // if not exists user then create user
       if (!isUserExists[0]) {
-        return c.redirect('/signup')
+        return c.redirect('/sign/up')
       }
 
       // else user exists, login user
@@ -180,10 +163,7 @@ oauthApi.get('/v1/:provider/callback', async (c) => {
   } catch (e) {
     if (e instanceof arctic.OAuth2RequestError) {
       const code = e.code
-      return c.json(
-        { msg: 'Invalid authorization code, credentials, or redirect URI' },
-        500,
-      )
+      return c.json({ msg: 'Invalid authorization code, credentials, or redirect URI' }, 500)
     }
     if (e instanceof arctic.ArcticFetchError) {
       const cause = e.cause

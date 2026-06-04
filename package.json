@@ -2,15 +2,19 @@
   "name": "haru",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev" : "bunx run dev:css & bun run dev:wrangler",
+    "dev:css": "@tailwindcss/cli -i ./public/style-i.css -o ./public/style-o.css --watch",
+    "dev:wrangler": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
     "@photonjs/hono": "^0.1.12",
+    "@tailwindcss/cli": "^4.3.0",
     "@tidbcloud/serverless": "^0.3.0",
     "arctic": "^3.7.0",
     "hono": "^4.12.18",
+    "tailwindcss": "^4.3.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
