@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import oauthApi from './apis/oauth.api'
 import { JwtVariables } from 'hono/jwt'
 import signApi, { User } from './apis/sign.api'
+import testRoute from './views/test';
 
 export type Variable = {
   JwtVariables: JwtVariables
@@ -24,6 +25,7 @@ export type Binding = {
 
 const app = new Hono<{ Bindings: Binding; Variables: Variable }>()
 
+
 export interface AccessTokenPayload {
   user: User
   exp: number // 15분 뒤
@@ -37,5 +39,7 @@ export interface RefreshTokenPayload {
 
 app.route('/api/oauth', oauthApi)
 app.route('/api/auth', signApi)
+
+app.route('/', testRoute)
 
 export default app
