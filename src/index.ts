@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import oauthApi from './apis/oauth.api'
 import { JwtVariables } from 'hono/jwt'
 import signApi, { User } from './apis/sign.api'
-import testRoute from './views/test';
+import { indexRoute } from './routes/index.route';
 
 export type Variable = {
   JwtVariables: JwtVariables
@@ -37,9 +37,10 @@ export interface RefreshTokenPayload {
   jti: string
 }
 
+app.route('/', indexRoute)
+
 app.route('/api/oauth', oauthApi)
 app.route('/api/auth', signApi)
 
-app.route('/', testRoute)
 
 export default app
