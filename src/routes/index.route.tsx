@@ -10,7 +10,9 @@ indexRoute.use(optionalJwtMiddleware)
 indexRoute.get('/', (c) => {
   c.set('routePageTitle', 'x')
   let loginFlag = false
-  if(c.get('refTknPayload')) {
+  const refTkn = c.get('refTknPayload')
+  console.log(refTkn)
+  if(refTkn) {
     loginFlag = true
   }
   return c.render(<MainPage isLoggined={loginFlag}/>)

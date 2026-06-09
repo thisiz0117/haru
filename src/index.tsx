@@ -61,11 +61,12 @@ app.use(
   }, { docType: true }),
 )
 
-app.route('/', indexRoute)
-app.route('/', userRoute)
-app.route('sign', signRoute)
+app.route('/sign', signRoute)
 
 app.route('/api/oauth', oauthApi)
 app.route('/api/auth', signApi)
+
+app.route('/', indexRoute)
+app.route('/', userRoute)
 
 export default app
