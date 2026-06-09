@@ -48,7 +48,7 @@ export const strictJwtMiddleware = createMiddleware(async (c: Context, next: Nex
   return await next()
 })
 
-const optionalJwtMiddleware = createMiddleware(async (c: Context, next: Next) => {
+export const optionalJwtMiddleware = createMiddleware(async (c: Context, next: Next) => {
   // 토큰받아와
   const acsTknCookie = getCookie(c, 'access_token')
   const refTknCookie = getCookie(c, 'refresh_token')

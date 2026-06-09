@@ -9,7 +9,6 @@ const oauthApi = new Hono<{ Bindings: Binding }>()
 
 /*
   # Claims Interface
-  -> ts의 병신같은 강렬한 타입체크 방어용
   -! 카카오나 네이버 추가했는데, 다르게 나올 수도 있으므로 나중에 수정해야 할 수도 있음!! 
 
     {

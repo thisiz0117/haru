@@ -1,12 +1,17 @@
 import { Hono } from 'hono'
-import { MainLayout } from '../views/layouts/main.layout'
+import { Variable } from '..';
+import { MainPage } from '../views/pages/index.page';
+import { optionalJwtMiddleware } from '../middleware.ts/jwt.mw';
 
-export const indexRoute = new Hono()
+export const indexRoute = new Hono<{Variables: Variable}>()
 
-indexRoute.get('/x', (c) => {
-  return c.html(
-    <MainLayout title="main site">
-      <h1>welcome</h1>
-    </MainLayout>
-  )
+indexRoute.use(optionalJwtMiddleware)
+
+indexRoute.get('/', (c) => {
+  c.set('routePageTitle', 'x')
+  let loginFlag = false
+  if(c.get('refTknPayload')) {
+    loginFlag = true
+  }
+  return c.render(<MainPage isLoggined={loginFlag}/>)
 })

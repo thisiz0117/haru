@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import devServer from '@hono/vite-dev-server'
+import { cloudflare } from '@cloudflare/vite-plugin';
 
 export default defineConfig({
   esbuild: {
@@ -7,8 +8,10 @@ export default defineConfig({
     jsxImportSource: 'hono/jsx'
   },
   plugins: [
-    devServer({
-      entry: '/src/index.ts',
-    }),
+    cloudflare()
   ],
+  server : {
+    port: 8787,
+    strictPort: true
+  }
 })

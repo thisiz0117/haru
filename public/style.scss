@@ -1,8 +1,8 @@
 @font-face {
   font-family: 'DungGeunMo';
-  src: url('fonts/DungGeunMo.eot') format('eot');
-  src: url('fonts/DungGeunMo.woff') format('woff');
-  src: url('fonts/DungGeunMo.woff2') format('woff2');
+  src: url('/fonts/DungGeunMo.eot') format('eot');
+  src: url('/fonts/DungGeunMo.woff') format('woff');
+  src: url('/fonts/DungGeunMo.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
@@ -12,7 +12,10 @@ body {
   padding: 40px 20px;
   background-color: #f5f5f5;
 
-  .nes-btn, .nes-input, .nes-textarea, .nes-container {
+  .nes-btn,
+  .nes-input,
+  .nes-textarea,
+  .nes-container {
     font-family: 'DungGeunMo', sans-serif !important;
     padding-top: 12px !important;
     padding-bottom: 12px !important;
@@ -24,3 +27,100 @@ body {
   max-width: 600px;
   margin: 0 auto;
 }
+
+.select-container {
+  div {
+    padding: 10px;
+
+    span {
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+
+    &:hover {
+      span:first-child {
+        display: inline;
+      }
+    }
+
+    span {
+      &:first-child {
+        display: none;
+      }
+    }
+  }
+}
+
+.random-haru-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 70vh;
+
+  .diary {
+    max-width: 40vw;
+    overflow-y: auto;
+
+    @media (min-width: 768px) {
+      max-width: 60vh;
+    }
+
+    p {
+      &:first-child {
+        text-align: right;
+      }
+
+      &:last-child {
+        text-align: left;
+      }
+    }
+    h3 {
+      text-align: center;
+      word-break: normal;
+    }
+  }
+
+  p {
+    font-size: 14px;
+    text-align: center;
+    width: 100%;
+    margin-top: 20px;
+  }
+}
+
+.nav-top {
+  height: 60px;
+  div:first-child {
+    h3 {
+      font-size: 36px;
+      margin: 0;
+    }
+    p {
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+}
+
+.sign-in-page {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+
+  padding: 10%;
+  border: 2px black solid;
+
+  a {
+    color: inherit;
+  }
+}
+

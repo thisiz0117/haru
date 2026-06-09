@@ -3,11 +3,12 @@
   "type": "module",
   "scripts": {
     "sass": "sass",
-    "dev": "wrangler dev",
+    "dev": "vite",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "^1.40.0",
     "@photonjs/hono": "^0.1.12",
     "@tailwindcss/cli": "^4.3.0",
     "@tidbcloud/serverless": "^0.3.0",
