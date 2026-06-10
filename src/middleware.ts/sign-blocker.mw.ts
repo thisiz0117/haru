@@ -1,7 +1,6 @@
 import { Next, type Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
-import { verify } from 'hono/jwt'
 
 export const signBlockerMiddleware = createMiddleware(async (c: Context, next: Next) => {
   // 리프레시 받아와

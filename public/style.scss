@@ -105,7 +105,7 @@ body {
   }
 }
 
-.sign-in-page {
+.sign-page {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -124,3 +124,22 @@ body {
   }
 }
 
+.signup-form {
+  input,
+  textarea,
+  button {
+    all: unset;
+    box-sizing: border-box;
+    border: 2px solid black;
+    padding: 4px 2px;
+    margin: 10px 0
+  }
+  button {
+    cursor: pointer;
+    background-color: black;
+    color: #f5f5f5;
+  }
+  textarea {
+    resize: none;
+  }
+}

@@ -11,7 +11,6 @@ indexRoute.get('/', (c) => {
   c.set('routePageTitle', 'x')
   let loginFlag = false
   const refTkn = c.get('refTknPayload')
-  console.log(refTkn)
   if(refTkn) {
     loginFlag = true
   }

@@ -7,7 +7,7 @@ type ProviderProps = {
 
 export const SignInPage = () => {
   return (
-    <div className="sign-in-page">
+    <div className="sign-page">
       <h1>로그인</h1>
       <Provider displayName="Google" provider="google" />
       <Provider displayName="Naver" provider="naver" />

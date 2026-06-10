@@ -18,7 +18,6 @@ const signApi = new Hono<{ Bindings: Binding; Variables: Variable }>()
 interface SignupBody {
   username?: string
   description?: string | null
-  profile?: File | null
 }
 
 /*
