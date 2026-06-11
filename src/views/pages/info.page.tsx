@@ -1,8 +1,8 @@
 import { FC, PropsWithChildren } from 'hono/jsx'
-import { User } from '../../apis/sign.api'
+import { AccessTokenPayload } from '../..';
 
 type InfoProps = {
-  user: User
+  user: AccessTokenPayload
 }
 
 type ISectionProps = {
@@ -15,12 +15,14 @@ type IDProps = {
 }
 
 export const InfoPage: FC<InfoProps> = (props) => {
+  const user = props.user.user
+
   return (
     <>
       <InfoSection title="내 정보">
-        <InfoData keyword="사용자명" data={props.user.username} />
-        <InfoData keyword="내 설명" data={props.user.description} />
-        <InfoData keyword="가입일" data={props.user.created_at} />
+        <InfoData keyword="사용자명" data={user.username} />
+        <InfoData keyword="내 설명" data={user.description} />
+        <InfoData keyword="가입일" data={user.created_at} />
       </InfoSection>
     </>
   )

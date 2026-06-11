@@ -64,16 +64,16 @@ signApi.post('/v1/signup', async (c) => {
 
   let encodedDescription: string = ''
 
-  if(description) {
+  if (description) {
     encodedDescription = encodeURIComponent(description)
   }
 
   if (!/^[0-9a-zA-Z_]{4,32}$/.test(username)) {
     return c.redirect(`/sign/up?e=username&u=${encodedUsername}&d=${encodedDescription}`, 302)
   }
-  
+
   // 설명 길이 검증
-  if(description && description.length > 256) {
+  if (description && description.length > 256) {
     console.log('설명 길이 검증 실패')
     return c.redirect(`/sign/up?e=description&u=${encodedUsername}&d=${encodedDescription}`, 302)
   }
@@ -129,8 +129,14 @@ signApi.get('/v1/signin', async (c) => {
     // else create jwt and add ref token in db
     const accessTokenJwt = await sign(
       {
-        user: user,
-        exp: nowInUnix + 60 * 15, // 15분 뒤
+        user: {
+          id: user.id,
+          provider: user.provider,
+          username: user.username,
+          description: user.description,
+          created_at: user.created_at,
+        } as User,
+        exp: nowInUnix + 60 * 15,
       },
       c.env.ACCESS_TOKEN_SECRET,
     )

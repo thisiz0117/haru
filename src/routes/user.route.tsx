@@ -1,15 +1,14 @@
-import { Hono } from "hono";
-import { InfoPage } from "../views/pages/info.page";
-import { strictJwtMiddleware } from "../middleware.ts/jwt.mw";
-import { Variable } from "..";
-import { decode } from "hono/jwt";
+import { Hono } from 'hono'
+import { InfoPage } from '../views/pages/info.page'
+import { strictJwtMiddleware } from '../middleware.ts/jwt.mw'
+import { Variable } from '..'
 
-export const userRoute = new Hono<{Variables: Variable}>()
+export const userRoute = new Hono<{ Variables: Variable }>()
 
 userRoute.use(strictJwtMiddleware)
 
-userRoute.get('/info', (c) => {
-  const user = c.get('acsTknPayload').user
+userRoute.get('/myinfo', (c) => {
+  const userPayload = c.get('acsTknPayload')
 
-  return c.render(<InfoPage user={user}/>)
+  return c.render(<InfoPage user={userPayload}/>)
 })

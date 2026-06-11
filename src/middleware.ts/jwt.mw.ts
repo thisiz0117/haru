@@ -33,16 +33,13 @@ export const strictJwtMiddleware = createMiddleware(async (c: Context, next: Nex
   }
 
   // 다 유효하냐
+  // 유효하니 라우트 안에서 정보 꺼내쓰게 set 해서 줘라
   try {
-    await verify(acsTknCookie!, c.env.ACCESS_TOKEN_SECRET, 'HS256')
-    await verify(refTknCookie!, c.env.REFRESH_TOKEN_SECRET, 'HS256')
+    c.set('acsTknPayload', await verify(acsTknCookie!, c.env.ACCESS_TOKEN_SECRET, 'HS256'))
+    c.set('refTknPayload', await verify(refTknCookie!, c.env.REFRESH_TOKEN_SECRET, 'HS256'))
   } catch (e) {
     return c.json({ msg: 'failed refTkn & acsTkn verify' })
   }
-
-  // 유효하니 라우트 안에서 정보 꺼내쓰게 set 해서 줘라
-  c.set('acsTknPayload', acsTknCookie)
-  c.set('refTknPayload', refTknCookie)
 
   // 라우트 이동
   return await next()
