@@ -134,12 +134,19 @@ body {
     padding: 4px 2px;
     margin: 10px 0
   }
+
   button {
     cursor: pointer;
     background-color: black;
     color: #f5f5f5;
   }
+
   textarea {
     resize: none;
+  }
+
+  p {
+    color: red;
+    font-size: 12px
   }
 }

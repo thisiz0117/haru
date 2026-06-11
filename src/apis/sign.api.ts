@@ -36,6 +36,7 @@ export interface User {
 /*
   # POST: api/auth/v1/signup
   -> 계정 등록, form data 기반
+  -> v1.5: 검증 기능 추가
   */
 signApi.post('/v1/signup', async (c) => {
   // get claims data
@@ -50,6 +51,33 @@ signApi.post('/v1/signup', async (c) => {
   const username = body.username
   const description = body.description
 
+  // v1.5 검증
+  // 닉네임 검증
+  if (!username) {
+    return c.redirect('/sign/in', 302)
+  }
+
+  // 닉네임 형식 검증
+  // 포멧 검증 -> 길이 검증 -> 통과
+
+  const encodedUsername = encodeURIComponent(username)
+
+  let encodedDescription: string = ''
+
+  if(description) {
+    encodedDescription = encodeURIComponent(description)
+  }
+
+  if (!/^[0-9a-zA-Z_]{4,32}$/.test(username)) {
+    return c.redirect(`/sign/up?e=username&u=${encodedUsername}&d=${encodedDescription}`, 302)
+  }
+  
+  // 설명 길이 검증
+  if(description && description.length > 256) {
+    console.log('설명 길이 검증 실패')
+    return c.redirect(`/sign/up?e=description&u=${encodedUsername}&d=${encodedDescription}`, 302)
+  }
+
   // insert data in database
   try {
     const connection = connect({ url: c.env.DB_USER_URL })
@@ -60,9 +88,7 @@ signApi.post('/v1/signup', async (c) => {
       { arrayMode: false },
     )
 
-    await deleteCookie(c, 'temp_claims')
-
-    return c.redirect('/', 302)
+    return c.redirect('api/auth/v1/signin', 302)
   } catch (e) {
     return c.json({ msg: 'db error', err: e }, 500)
   }
@@ -246,13 +272,12 @@ signApi.get('/v1/refresh', async (c) => {
         sameSite: 'Lax',
       })
 
-      await conncetion
-        .execute(
-          'insert into ref_tokens (user_id, ref_token, expires_at) values (?, ?, unix_timestamp(?))',
-          [user.id, jwtId, nowInUnix + day14],
-          { arrayMode: true, fullResult: false },
-        )
-        
+      await conncetion.execute(
+        'insert into ref_tokens (user_id, ref_token, expires_at) values (?, ?, unix_timestamp(?))',
+        [user.id, jwtId, nowInUnix + day14],
+        { arrayMode: true, fullResult: false },
+      )
+
       // 다시 정보 set 해서 라우트에서 사용하게 한다
       c.set('acsTknPayload', newAcsTknPayload)
       c.set('refTknPayload', newRefTknPayload)
@@ -294,7 +319,7 @@ signApi.get('/v1/logout', async (c) => {
     await connection.execute('delete from ref_tokens where ref_token = ?', [refTknPayload.jti])
   } catch (e) {
     return c.json({ msg: 'db err', err: e }, 500)
-  } 
+  }
 
   // 쿠키 지워
   deleteCookie(c, 'refresh_token')
