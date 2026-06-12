@@ -15,7 +15,7 @@ export const IndexSelect: FC<ContainerProps> = (props) => {
       <div className="select-container">
         <SelectItem text="일기 쓰기" link="/write" />
         <SelectItem text="하루 탐색하기" link="/explore" />
-        <SelectItem text="내 정보" link="/myinfo" />
+        <SelectItem text="내 정보" link="/my/info" />
       </div>
     )
   }

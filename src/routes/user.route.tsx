@@ -7,7 +7,7 @@ export const userRoute = new Hono<{ Variables: Variable }>()
 
 userRoute.use(strictJwtMiddleware)
 
-userRoute.get('/myinfo', (c) => {
+userRoute.get('/info', (c) => {
   const userPayload = c.get('acsTknPayload')
 
   return c.render(<InfoPage user={userPayload}/>)

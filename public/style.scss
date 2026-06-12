@@ -132,13 +132,7 @@ body {
     box-sizing: border-box;
     border: 2px solid black;
     padding: 4px 2px;
-    margin: 10px 0
-  }
-
-  button {
-    cursor: pointer;
-    background-color: black;
-    color: #f5f5f5;
+    margin: 10px 0;
   }
 
   textarea {
@@ -147,6 +141,18 @@ body {
 
   p {
     color: red;
-    font-size: 12px
+    font-size: 12px;
   }
+}
+
+button {
+  all: unset;
+  cursor: pointer;
+  background-color: black;
+  color: #f5f5f5;
+  padding: 4px 2px;
+}
+
+a {
+  color: inherit;
 }

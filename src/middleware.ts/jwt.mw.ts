@@ -2,7 +2,6 @@ import type { Context, Next } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
 import { decode, verify } from 'hono/jwt'
-import { JWTPayload } from 'hono/utils/jwt/types'
 
 export const strictJwtMiddleware = createMiddleware(async (c: Context, next: Next) => {
   // 토큰받아와
@@ -25,7 +24,7 @@ export const strictJwtMiddleware = createMiddleware(async (c: Context, next: Nex
     try {
       await verify(refTknCookie!, c.env.REFRESH_TOKEN_SECRET, 'HS256')
     } catch (e) {
-      return c.json({ msg: 'failed refTkn verify' })
+      return c.redirect('/api/auth/v1/logout', 302)
     }
 
     // acsTkn 다시받아와라

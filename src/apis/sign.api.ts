@@ -4,7 +4,7 @@ import { deleteCookie, getCookie, getSignedCookie, setCookie } from 'hono/cookie
 import { connect } from '@tidbcloud/serverless'
 import { iss } from '../services/providers.service'
 import { Claims } from './oauth.api'
-import { sign, verify } from 'hono/jwt'
+import { decode, sign, verify } from 'hono/jwt'
 import { v4 as uuidV4 } from 'uuid'
 
 const signApi = new Hono<{ Bindings: Binding; Variables: Variable }>()
@@ -25,12 +25,12 @@ interface SignupBody {
 */
 export interface User {
   id: number
-  provider?: string
-  sub?: string
-  username?: string
-  description?: string
-  created_at?: number
-  updated_at?: number
+  provider?: string | undefined
+  sub?: string | undefined
+  username?: string | undefined
+  description?: string | undefined
+  created_at?: number | undefined
+  updated_at?: number | undefined
 }
 
 /*
@@ -74,7 +74,6 @@ signApi.post('/v1/signup', async (c) => {
 
   // 설명 길이 검증
   if (description && description.length > 256) {
-    console.log('설명 길이 검증 실패')
     return c.redirect(`/sign/up?e=description&u=${encodedUsername}&d=${encodedDescription}`, 302)
   }
 
@@ -127,31 +126,29 @@ signApi.get('/v1/signin', async (c) => {
     const nowInUnix = Math.floor(Date.now() / 1000)
 
     // else create jwt and add ref token in db
-    const accessTokenJwt = await sign(
-      {
-        user: {
-          id: user.id,
-          provider: user.provider,
-          username: user.username,
-          description: user.description,
-          created_at: user.created_at,
-        } as User,
-        exp: nowInUnix + 60 * 15,
-      },
-      c.env.ACCESS_TOKEN_SECRET,
-    )
+    const newAcsTknPayload = {
+      user: {
+        id: user.id,
+        provider: user.provider,
+        username: user.username,
+        description: user.description,
+        created_at: user.created_at,
+      } as User,
+      exp: nowInUnix + 60 * 15,
+    }
+
+    const accessTokenJwt = await sign(newAcsTknPayload, c.env.ACCESS_TOKEN_SECRET)
 
     const jwtId = uuidV4()
     const day14 = 60 * 60 * 24 * 14
 
-    const refreshTokenJwt = await sign(
-      {
-        id: user.id,
-        exp: nowInUnix + day14, // 14일 뒤
-        jti: jwtId,
-      },
-      c.env.REFRESH_TOKEN_SECRET,
-    )
+    const newRefTknPayload = {
+      user_id: user.id,
+      exp: nowInUnix + day14,
+      jti: jwtId,
+    }
+
+    const refreshTokenJwt = await sign(newRefTknPayload, c.env.REFRESH_TOKEN_SECRET)
 
     await setCookie(c, 'access_token', accessTokenJwt, {
       httpOnly: true,
@@ -194,6 +191,7 @@ signApi.get('/v1/refresh', async (c) => {
   // -> 없으면 잘못온거다. 메인페이지로 보내든가 404로 보내
   const refTkn = getCookie(c, 'refresh_token')
   let refTknPayload
+
   if (!refTkn) {
     return c.redirect('/api/auth/v1/logout', 302)
   }
@@ -223,12 +221,13 @@ signApi.get('/v1/refresh', async (c) => {
   try {
     const conncetion = connect({ url: c.env.DB_USER_URL })
     // 검증된 리프레시 토큰에서 유저 db에서 받아온다
-    const userExecRes = (await conncetion.execute('select * from ref_tokens where ref_token = ?', [
-      refTknPayload!.jti,
-    ])) as User[]
+    const userExecRes = (await conncetion.execute(
+      'SELECT u.* FROM ref_tokens r INNER JOIN users u ON r.user_id = u.id WHERE r.ref_token = ?',
+      [refTknPayload!.jti],
+    )) as User[]
 
     if (userExecRes.length === 0) {
-      return c.json({ msg: 'db select err', res: userExecRes }, 500)
+      return c.redirect('/api/auth/v1/logout', 302)
     }
 
     const user = userExecRes[0]
@@ -289,7 +288,7 @@ signApi.get('/v1/refresh', async (c) => {
       c.set('refTknPayload', newRefTknPayload)
     }
   } catch (e) {
-    return c.json({ msg: 'db err', err: e }, 500)
+    return c.redirect('/api/auth/v1/logout', 302)
   }
 
   return c.redirect(redirect, 302)
@@ -311,20 +310,19 @@ signApi.get('/v1/logout', async (c) => {
     return c.redirect('/sign/in', 302)
   }
 
-  let refTknPayload
-
+  // 리프레시 검증 후 삭제
   try {
-    refTknPayload = await verify(refTkn, c.env.REFRESH_TOKEN_SECRET, 'HS256')
-  } catch (e) {
-    return c.text(String(e), 400)
-  }
+    const refTknPayload = await verify(refTkn, c.env.REFRESH_TOKEN_SECRET, 'HS256')
 
-  // 세션DB 지워
-  try {
-    const connection = connect({ url: c.env.DB_USER_URL })
-    await connection.execute('delete from ref_tokens where ref_token = ?', [refTknPayload.jti])
+    try {
+      const connection = connect({ url: c.env.DB_USER_URL })
+      await connection.execute('delete from ref_tokens where ref_token = ?', [refTknPayload.jti])
+    } catch (e) {
+      return c.json({ msg: 'db err', err: e }, 500)
+    }
   } catch (e) {
-    return c.json({ msg: 'db err', err: e }, 500)
+    deleteCookie(c, 'refresh_token')
+    return c.redirect('/', 302)
   }
 
   // 쿠키 지워
