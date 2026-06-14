@@ -145,6 +145,36 @@ body {
   }
 }
 
+#new-diary-form {
+  input,
+  textarea,
+  select {
+    all: unset;
+    box-sizing: border-box;
+    border: 2px solid black;
+    padding: 4px 2px;
+    margin: 10px 0;
+  }
+
+  input {
+    min-width: 60vw;
+    max-width: 95vw;
+    margin-right: -20px;
+  }
+
+  textarea {
+    min-width: 60vw;
+    max-width: 95vw;
+    min-height: 30vh;
+    margin-right: -20px;
+  }
+
+  p {
+    color: red;
+    font-size: 12px;
+  }
+}
+
 button {
   all: unset;
   cursor: pointer;

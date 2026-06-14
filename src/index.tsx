@@ -7,6 +7,8 @@ import { jsxRenderer } from 'hono/jsx-renderer'
 import { signRoute } from './routes/sign.route'
 import { userRoute } from './routes/user.route'
 import { logger } from 'hono/logger'
+import { diaryApi } from './apis/diary.api';
+import { diaryRoute } from './routes/diary.route';
 
 export type Variable = {
   JwtVariables: JwtVariables
@@ -62,18 +64,19 @@ export const MainLayout = jsxRenderer(
 
 app.use(logger())
 
-// API 라우트 (MainLayout 미적용)
+// api
 app.route('/api/oauth', oauthApi)
 app.route('/api/auth', signApi)
+app.route('/api/diary', diaryApi)
 
-// HTML 렌더링 라우트 (MainLayout 적용)
+// view
 app.use(MainLayout)
 
-// 인증 관련 라우트
 app.route('/sign', signRoute)
 app.route('/my', userRoute)
 
-// 루트 라우트
+app.route('/diary', diaryRoute)
+
 app.route('/', indexRoute)
 
 export default app
