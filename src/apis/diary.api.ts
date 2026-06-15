@@ -10,6 +10,55 @@ import { strictJwtMiddleware } from '../middleware.ts/jwt.mw'
 
 export const diaryApi = new Hono<{ Bindings: Binding; Variables: Variable }>()
 
+/*
+  # /api/diary/v1/random?count={count}
+  -> 랜덤 다이어리 api
+  -> query: count = 필요한 양
+*/
+export interface RandomDiaryResponse {
+  success: boolean
+  data?: {
+    title: string
+    writer: string
+    likeCount: number
+  }[]
+  error?: string
+}
+
+// api/diary/v1/random?count=?
+diaryApi.get('/v1/random', async (c) => {
+  // 필요한 양 체크
+  // -> 없거나, 0개, 100개 이상이면 빠꾸
+  const countQuery = c.req.query('count')
+
+  if (!countQuery) {
+    return c.json({ success: false, error: 'need count query' } as RandomDiaryResponse, 400)
+  }
+
+  const count = parseInt(countQuery)
+
+  if (count <= 0) {
+    return c.json({ success: false, error: '0개 이하의 요청은 안됩니다.' } as RandomDiaryResponse)
+  }
+
+  // db에서 일기 받아오기
+  // -> 받아오면 데이터 리턴
+  // -> 부족하거나 없으면 없는 만큼 리턴
+  // -> 오류는 빠꾸
+  try {
+    const connection = connect({ url: c.env.DB_USER_URL })
+
+    const diaryQueries = await connection.execute(
+      'select id, writer, title, likes_count from diaries order by rand() limit ?',
+      [count],
+    )
+
+    return c.json({ success: true, data: diaryQueries } as RandomDiaryResponse, 200)
+  } catch (e) {
+    return c.json({ success: false, error: 'DB 연결 에러' + e } as RandomDiaryResponse, 500)
+  }
+}) // api/diary/v1/random?count=?
+
 diaryApi.use(strictJwtMiddleware)
 
 /*
@@ -93,30 +142,24 @@ const getErrorPosition = (pos: string) => {
 // api/diary/v1/new
 diaryApi.post('/v1/new', async (c) => {
   try {
-    // form 받아오기
     const body = await c.req.parseBody()
-    
-    console.log('[DIARY API] Received body:', body)
-
-    // form 검증
     let validateRes
 
     if (!(validateRes = validateBody(body)).success) {
-      // 실패했으니, 문제 지점에 에러 메시지를 보내도록 하기
-      // 제목, 본문, 일기 indexof가 0인 값에 맞춰서 알아서 보내야 함
       let pos = validateRes.error!
-
-      console.log('[DIARY API] Validation failed:', pos)
-      return c.json({ position: getErrorPosition(pos), error: pos } as NewDiaryError, 400)
+      return c.json(
+        {
+          success: false,
+          error: { position: getErrorPosition(pos), error: pos },
+        } as NewDiaryResponse,
+        400,
+      )
     }
 
     const { title, content, isPublic } = validateRes.data as NewDiaryFormData
 
-    // 업로드
     try {
       const connection = connect({ url: c.env.DB_USER_URL })
-
-      // 작성자 정보 받아오기
       const writer = c.get('acsTknPayload').user.id
 
       await connection.execute('insert into diaries (writer, title, content, state) values (?, ?, ?, ?)', [
@@ -131,18 +174,38 @@ diaryApi.post('/v1/new', async (c) => {
         [writer],
       )
 
-      if (!redirectUrl || !('id' in redirectUrl[0])) {
-        return c.json({ success: false, error: { position: 'error', error: '사용자를 찾지 못했습니다.' } } as NewDiaryResponse, 500)
+      if (!redirectUrl || !Array.isArray(redirectUrl) || redirectUrl.length === 0) {
+        return c.json(
+          {
+            success: false,
+            error: { position: 'error', error: '사용자를 찾지 못했습니다.' },
+          } as NewDiaryResponse,
+          500,
+        )
       }
 
-      // 방금 작성한 일기로 이동
-      return c.json({ success: true, redirect: `/diary/${redirectUrl[0].id}` } as NewDiaryResponse, 200)
+      // @ts-ignore
+      const diaryId = redirectUrl[0].id
+
+      return c.json({ success: true, redirect: `/diary/${diaryId}` } as NewDiaryResponse, 200)
     } catch (e) {
-      console.error('[DIARY API] DB Error:', e)
-      return c.json({ success: false, error: { position: 'error', error: 'DB 에러입니다.' } } as NewDiaryResponse, 500)
+      console.error('db err:', e)
+      return c.json(
+        {
+          success: false,
+          error: { position: 'error', error: 'DB 에러입니다.' },
+        } as NewDiaryResponse,
+        500,
+      )
     }
   } catch (e) {
-    console.error('[DIARY API] Parse Error:', e)
-    return c.json({ position: 'error', error: 'API 처리 오류: ' + (e instanceof Error ? e.message : String(e)) } as NewDiaryError, 400)
+    console.error('db err:', e)
+    return c.json(
+      {
+        success: false,
+        error: { position: 'error', error: 'API 처리 오류: ' + e },
+      } as NewDiaryResponse,
+      400,
+    )
   }
 })

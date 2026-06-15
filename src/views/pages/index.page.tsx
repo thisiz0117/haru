@@ -1,8 +1,10 @@
 import { FC } from 'hono/jsx'
 import { NavLayout } from '../layouts/nav.layout'
+import { RandomDiary } from '../../routes/index.route';
 
 type MainPageProps = {
   isLoggined: boolean
+  randomDiary: RandomDiary | null
 }
 
 type ContainerProps = {
@@ -15,16 +17,21 @@ type ItemProps = {
 }
 
 type RHProps = {
+  id: number
   diary: string
   writer: string
   likeCount: number
 }
 
 export const MainPage: FC<MainPageProps> = (props) => {
+  const diary = props.randomDiary
+
+  console.log('page diary: ' + diary)
+
   return (
     <>
       <NavLayout />
-      <RandomHaru diary="과거는 거짓말이고, 미래는 환상일 뿐이다" writer="MXUniQ" likeCount={120} />
+        <RandomHaru id={diary!.id} diary={diary!.title} writer={diary!.writer} likeCount={diary!.likes_count} />
       <IndexSelect isLoggined={props.isLoggined} />
     </>
   )
@@ -64,7 +71,7 @@ export const RandomHaru: FC<RHProps> = (props) => {
     <div className="random-haru-container">
       <div className="diary">
         <p>ㄱ</p>
-        <h3>"{props.diary}"</h3>
+        <a href={`/diary/${props.id}`}><h3>"{props.diary}"</h3></a>
         <p>ㄴ</p>
       </div>
       <p>
