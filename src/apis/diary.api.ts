@@ -17,11 +17,7 @@ export const diaryApi = new Hono<{ Bindings: Binding; Variables: Variable }>()
 */
 export interface RandomDiaryResponse {
   success: boolean
-  data?: {
-    title: string
-    writer: string
-    likeCount: number
-  }[]
+  data?: object[]
   error?: string
 }
 
@@ -49,7 +45,7 @@ diaryApi.get('/v1/random', async (c) => {
     const connection = connect({ url: c.env.DB_USER_URL })
 
     const diaryQueries = await connection.execute(
-      'select id, writer, title, likes_count from diaries order by rand() limit ?',
+      'select d.id, d.title, d.likes_count, u.username from diaries d join users u order by rand() limit 1;',
       [count],
     )
 
@@ -170,7 +166,7 @@ diaryApi.post('/v1/new', async (c) => {
       ])
 
       const redirectUrl = await connection.execute(
-        'select id from diaries where writer = ? and now() - created_at < 60',
+        'select id from diaries where writer = ? and now() - created_at < 60 order by desc limit 1',
         [writer],
       )
 

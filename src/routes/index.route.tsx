@@ -10,7 +10,7 @@ indexRoute.use(optionalJwtMiddleware)
 export interface RandomDiary {
   id: number
   title: string
-  writer: string
+  username: string
   likes_count: number
 }
 
@@ -38,8 +38,8 @@ const validateRandomDiaryFetch = (data: unknown): RandomDiary | null => {
     return null
   }
 
-  if ('id' in diary && 'title' in diary && 'writer' in diary && 'likes_count' in diary) {
-    return { id: diaries[0].id, title: diaries[0].title, writer: diaries[0].writer, likes_count: diaries[0].likes_count }
+  if ('id' in diary && 'title' in diary && 'username' in diary && 'likes_count' in diary) {
+    return { id: diaries[0].id, title: diaries[0].title, username: diaries[0].username, likes_count: diaries[0].likes_count }
   }
 
   return null

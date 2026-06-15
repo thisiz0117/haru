@@ -19,7 +19,7 @@ type ItemProps = {
 type RHProps = {
   id: number
   diary: string
-  writer: string
+  username: string
   likeCount: number
 }
 
@@ -31,7 +31,7 @@ export const MainPage: FC<MainPageProps> = (props) => {
   return (
     <>
       <NavLayout />
-        <RandomHaru id={diary!.id} diary={diary!.title} writer={diary!.writer} likeCount={diary!.likes_count} />
+        <RandomHaru id={diary!.id} diary={diary!.title} username={diary!.username} likeCount={diary!.likes_count} />
       <IndexSelect isLoggined={props.isLoggined} />
     </>
   )
@@ -75,7 +75,7 @@ export const RandomHaru: FC<RHProps> = (props) => {
         <p>ㄴ</p>
       </div>
       <p>
-        {props.likeCount} 개의 좋아요를 받은 '{props.writer}' 님의 일기입니다.
+        {props.likeCount} 개의 좋아요를 받은 '{props.username}' 님의 일기입니다.
       </p>
     </div>
   )
