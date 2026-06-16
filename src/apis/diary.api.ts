@@ -10,55 +10,6 @@ import { optionalJwtMiddleware, strictJwtMiddleware } from '../middleware.ts/jwt
 
 export const diaryApi = new Hono<{ Bindings: Binding; Variables: Variable }>()
 
-diaryApi.use(optionalJwtMiddleware)
-
-/*
-  # /api/diary/v1/random?count={count}
-  -> 랜덤 다이어리 api
-  -> query: count = 필요한 양
-*/
-export interface RandomDiaryResponse {
-  success: boolean
-  data?: object[]
-  error?: string
-}
-
-// api/diary/v1/random?count=?
-diaryApi.get('/v1/random', async (c) => {
-  // 필요한 양 체크
-  // -> 없거나, 0개, 100개 이상이면 빠꾸
-  const countQuery = c.req.query('count')
-
-  if (!countQuery) {
-    return c.json({ success: false, error: 'need count query' } as RandomDiaryResponse, 400)
-  }
-
-  const count = parseInt(countQuery)
-
-  if (count <= 0) {
-    return c.json({ success: false, error: '0개 이하의 요청은 안됩니다.' } as RandomDiaryResponse)
-  }
-
-  // db에서 일기 받아오기
-  // -> 받아오면 데이터 리턴
-  // -> 부족하거나 없으면 없는 만큼 리턴
-  // -> 오류는 빠꾸
-  try {
-    const connection = connect({ url: c.env.DB_USER_URL })
-
-    const diaryQueries = await connection.execute(
-      'select d.id, d.title, d.likes_count, u.username from diaries d join users u order by rand() limit 1;',
-      [count],
-    )
-
-    return c.json({ success: true, data: diaryQueries } as RandomDiaryResponse, 200)
-  } catch (e) {
-    return c.json({ success: false, error: 'DB 연결 에러' + e } as RandomDiaryResponse, 500)
-  }
-}) // api/diary/v1/random?count=?
-
-// diaryApi.use(strictJwtMiddleware)
-
 /*
   # api/diary/v1/new
   -> 일기 쓰기 form 받아서 db 업로드 처리
@@ -138,7 +89,7 @@ const getErrorPosition = (pos: string) => {
 }
 
 // api/diary/v1/new
-diaryApi.post('/v1/new', async (c) => {
+diaryApi.post('/v1/new', strictJwtMiddleware, async (c) => {
   try {
     const body = await c.req.parseBody()
     let validateRes
@@ -210,17 +161,17 @@ diaryApi.post('/v1/new', async (c) => {
 
 /*
   # addLikeService
-  # api/diary/v1/like?diary-id={id}&=rating={u, d}&option={a, c}
+  # api/diary/v1/like?diary={id}&=rating={u, d}
 */
 type Rating = 'like' | 'dislike'
 
 const getRating = (rating: any): Rating | null => {
-  if (rating === 'up' || rating === 'u') return 'like'
-  if (rating === 'down' || rating === 'd') return 'dislike'
+  if (rating === 'like' || rating === 'u') return 'like'
+  if (rating === 'dislike' || rating === 'd') return 'dislike'
   return null
 }
 
-diaryApi.get('/v1/rating', async (c) => {
+diaryApi.get('/v1/rating', strictJwtMiddleware, async (c) => {
   // 레이팅 받아오기
   const ratingQuery = c.req.query('rating')
   if (!ratingQuery) return c.json({ msg: 'rating 필요함' }, 400)
@@ -234,15 +185,14 @@ diaryApi.get('/v1/rating', async (c) => {
   if (diary < 0) return c.json({ msg: '잘못된 게시물 요청' }, 400)
 
   // 유저 정보 받아오기
-  // const userInfo = c.get('acsTknPayload')
-  const userInfo = 2150001
+  const userInfo = c.get('acsTknPayload').user.id
 
   try {
     const conn = connect({ url: c.env.DB_USER_URL })
+
     // 이미 좋아요 누른 기록이 있는지 체크
     // -> 있으면 지우고 다르게
     // -> 이미 누른 상태면 그냥 아무짓도 안하고 리턴
-
     const checkRes = (await conn.execute('select reaction from like_records where selecter = ? and diary_id = ?', [
       userInfo,
       diary,
@@ -260,35 +210,48 @@ diaryApi.get('/v1/rating', async (c) => {
     // -> 다른거면 다른거 선택시키고 리턴
     // -> 같은거면 기록 삭제(좋아요 취소) 후 리턴
     if (reaction) {
-      console.log('1: aleady reaction')
       if (reaction !== rating) {
-        console.log('2T: not equal reaction')
+        console.log('R-N-EQ-U')
         await conn.execute('update like_records set reaction = ? where diary_id = ? and selecter = ?', [
-          reaction,
+          rating,
           diary,
           userInfo,
         ])
+        if (reaction === 'like') {
+          await conn.execute(
+            `update diaries set likes_count = likes_count - 1, dislikes_count = dislikes_count + 1 where id = ?`,
+            [diary],
+          )
+        } else {
+          await conn.execute(
+            `update diaries set likes_count = likes_count + 1, dislikes_count = dislikes_count - 1 where id = ?`,
+            [diary],
+          )
+        }
+        return c.json({ success: true, do: 'R-N-EQ-U' }, 200)
       } else {
-        console.log('2T: equal reaction')
+        console.log('R-EQ-D')
         await conn.execute('delete from like_records where diary_id = ? and selecter = ?', [diary, userInfo])
+        const query = rating === 'like' ? 'likes_count' : 'dislikes_count'
+        await conn.execute(`update diaries set ${query} = ${query} - 1 where id = ?`, [diary])
+        return c.json({ success: true, do: 'R-EQ-D' }, 200)
       }
     } else {
-      console.log('2F: add reaction')
+      console.log('N-R-I')
       await conn.execute('insert into like_records (diary_id, selecter, reaction) values (?, ?, ?)', [
         diary,
         userInfo,
-        rating
+        rating,
       ])
+      const query = rating === 'like' ? 'likes_count' : 'dislikes_count'
+      await conn.execute(`update diaries set ${query} = ${query} + 1 where id = ?`, [diary])
+      return c.json({ success: true, do: 'N-R-I' }, 200)
     }
-
-    return c.json({ success: true })
   } catch (e) {
     console.log(e)
     return c.json({ msg: 'db err', err: e }, 500)
   }
 })
-
-diaryApi.use(optionalJwtMiddleware)
 
 /*
   # api/diary/v1/:id
@@ -338,7 +301,52 @@ const validateDiaryRes = (diary: any): Diary | null => {
   return diary
 }
 
-diaryApi.get('/v1/:id', async (c) => {
+/*
+  # /api/diary/v1/random?count={count}
+  -> 랜덤 다이어리 api
+  -> query: count = 필요한 양
+*/
+export interface RandomDiaryResponse {
+  success: boolean
+  data?: object[]
+  error?: string
+}
+
+// api/diary/v1/random?count=?
+diaryApi.get('/v1/random', optionalJwtMiddleware, async (c) => {
+  // 필요한 양 체크
+  // -> 없거나, 0개, 100개 이상이면 빠꾸
+  const countQuery = c.req.query('count')
+
+  if (!countQuery) {
+    return c.json({ success: false, error: 'need count query' } as RandomDiaryResponse, 400)
+  }
+
+  const count = parseInt(countQuery)
+
+  if (count <= 0) {
+    return c.json({ success: false, error: '0개 이하의 요청은 안됩니다.' } as RandomDiaryResponse)
+  }
+
+  // db에서 일기 받아오기
+  // -> 받아오면 데이터 리턴
+  // -> 부족하거나 없으면 없는 만큼 리턴
+  // -> 오류는 빠꾸
+  try {
+    const connection = connect({ url: c.env.DB_USER_URL })
+
+    const diaryQueries = await connection.execute(
+      'select d.id, d.title, d.likes_count, u.username from diaries d join users u order by rand() limit 1;',
+      [count],
+    )
+
+    return c.json({ success: true, data: diaryQueries } as RandomDiaryResponse, 200)
+  } catch (e) {
+    return c.json({ success: false, error: 'DB 연결 에러' + e } as RandomDiaryResponse, 500)
+  }
+}) // api/diary/v1/random?count=?
+
+diaryApi.get('/v1/:id', optionalJwtMiddleware, async (c) => {
   const id = c.req.param('id')
 
   try {

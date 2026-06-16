@@ -90,8 +90,8 @@ const Title: FC<TitleProps> = (props) => {
 const Rating: FC<RatingProps> = (props) => {
   return (
     <>
-      <button id="like-btn">좋아요: {props.likesCount}</button>
-      <button id="dislike-btn">싫어요: {props.dislikeCount}</button>
+      <button id="like-btn" data-likes-count={props.likesCount}>좋아요: {props.likesCount}</button>
+      <button id="dislike-btn" data-dislikes-count={props.dislikeCount}>싫어요: {props.dislikeCount}</button>
     </>
   )
 }
