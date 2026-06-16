@@ -36,13 +36,27 @@ const unixToKoDate = (unixTime: number): string => {
 }
 
 export const DiaryPage: FC<DiaryProps> = (props) => {
+  if (!props.content) {
+    return (
+      <>
+        <Title title={props.title} created_at={props.created_at} username={props.username} userId={props.userId} />
+        <Content content={props.content!} />
+        <br />
+        <br />
+        <Rating likesCount={props.likes_count} dislikeCount={props.dislikes_count} />
+        {html`<script src="/scripts/diary-page"></script>`}
+      </>
+    )
+  }
+
   return (
     <>
       <Title title={props.title} created_at={props.created_at} username={props.username} userId={props.userId} />
-      {props.content || <Content content={props.content!} />}
+      <Content content={props.content!} />
       <br />
       <br />
       <Rating likesCount={props.likes_count} dislikeCount={props.dislikes_count} />
+      {html`<script src="/scripts/diary-page.js"></script>`}
     </>
   )
 }
@@ -78,7 +92,6 @@ const Rating: FC<RatingProps> = (props) => {
     <>
       <button id="like-btn">좋아요: {props.likesCount}</button>
       <button id="dislike-btn">싫어요: {props.dislikeCount}</button>
-      {html`<script src="/scripts/like_services"></script>`}
     </>
   )
 }

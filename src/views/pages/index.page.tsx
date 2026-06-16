@@ -26,8 +26,6 @@ type RHProps = {
 export const MainPage: FC<MainPageProps> = (props) => {
   const diary = props.randomDiary
 
-  console.log('page diary: ' + diary)
-
   return (
     <>
       <NavLayout />

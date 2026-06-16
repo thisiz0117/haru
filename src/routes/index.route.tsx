@@ -71,6 +71,5 @@ indexRoute.get('/', async (c) => {
     console.error('메인 글을 불러오지 못했습니다: ' + e)
   }
   
-  console.log('route diary: ', diary)
   return c.render(<MainPage isLoggined={loginFlag} randomDiary={diary ?? null} />)
 })

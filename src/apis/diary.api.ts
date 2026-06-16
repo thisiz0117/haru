@@ -57,81 +57,7 @@ diaryApi.get('/v1/random', async (c) => {
   }
 }) // api/diary/v1/random?count=?
 
-/*
-  # api/diary/v1/:id
-  -> 원하는 일기 받아오기
-*/
-export interface DiaryResponse {
-  success: boolean
-  data?: ''
-  error?: string
-}
-
-export interface Diary {
-  id: number
-  writer: number
-  username: string
-  title: string
-  content: string
-  state: string
-  likes_count: number
-  dislikes_count: number
-  created_at: number
-}
-
-const validateDiaryRes = (diary: any): Diary | null => {
-  if (!diary || typeof diary !== 'object') {
-    return null
-  }
-
-  console.log(diary)
-
-  const needKey = [
-    'id',
-    'username',
-    'writer',
-    'title',
-    'content',
-    'state',
-    'likes_count',
-    'dislikes_count',
-    'created_at',
-  ]
-
-  for (let key in diary) {
-    if (!needKey.includes(key)) {
-      console.log('key err, key: ', key)
-      return null
-    }
-  }
-
-  return diary
-}
-
-diaryApi.get('/v1/:id', async (c) => {
-  const id = c.req.param('id')
-
-  try {
-    const connection = connect({ url: c.env.DB_USER_URL })
-    const diaryRes = await connection.execute(
-      'select d.*, u.username from diaries d join users u on d.writer = u.id where d.id = ?',
-      [id],
-    )
-    const diary = validateDiaryRes(diaryRes[0])
-
-    console.log(diary)
-
-    if (diary === null) {
-      return c.json({ msg: 'faild user validate' }, 400)
-    }
-
-    return c.json({ data: diary }, 200)
-  } catch (e) {
-    return c.json({}, 500)
-  }
-})
-
-diaryApi.use(strictJwtMiddleware)
+// diaryApi.use(strictJwtMiddleware)
 
 /*
   # api/diary/v1/new
@@ -279,5 +205,156 @@ diaryApi.post('/v1/new', async (c) => {
       } as NewDiaryResponse,
       400,
     )
+  }
+})
+
+/*
+  # addLikeService
+  # api/diary/v1/like?diary-id={id}&=rating={u, d}&option={a, c}
+*/
+type Rating = 'like' | 'dislike'
+
+const getRating = (rating: any): Rating | null => {
+  if (rating === 'up' || rating === 'u') return 'like'
+  if (rating === 'down' || rating === 'd') return 'dislike'
+  return null
+}
+
+diaryApi.get('/v1/rating', async (c) => {
+  // 레이팅 받아오기
+  const ratingQuery = c.req.query('rating')
+  if (!ratingQuery) return c.json({ msg: 'rating 필요함' }, 400)
+  const rating = getRating(ratingQuery)
+  if (rating === null) return c.json({ msg: 'rating err. 레이팅 값이 이상한데요' }, 400)
+
+  // 일기 id 받아오기
+  const diaryQuery = c.req.query('diary')
+  if (!diaryQuery) return c.json({ msg: 'diary id 필요함' }, 400)
+  const diary = parseInt(diaryQuery)
+  if (diary < 0) return c.json({ msg: '잘못된 게시물 요청' }, 400)
+
+  // 유저 정보 받아오기
+  // const userInfo = c.get('acsTknPayload')
+  const userInfo = 2150001
+
+  try {
+    const conn = connect({ url: c.env.DB_USER_URL })
+    // 이미 좋아요 누른 기록이 있는지 체크
+    // -> 있으면 지우고 다르게
+    // -> 이미 누른 상태면 그냥 아무짓도 안하고 리턴
+
+    const checkRes = (await conn.execute('select reaction from like_records where selecter = ? and diary_id = ?', [
+      userInfo,
+      diary,
+    ])) as { reaction: Rating }[]
+
+    let reaction: Rating | null
+
+    if (checkRes[0]) {
+      reaction = checkRes[0].reaction
+    } else {
+      reaction = null
+    }
+
+    // 평가를 이미 했다면
+    // -> 다른거면 다른거 선택시키고 리턴
+    // -> 같은거면 기록 삭제(좋아요 취소) 후 리턴
+    if (reaction) {
+      console.log('1: aleady reaction')
+      if (reaction !== rating) {
+        console.log('2T: not equal reaction')
+        await conn.execute('update like_records set reaction = ? where diary_id = ? and selecter = ?', [
+          reaction,
+          diary,
+          userInfo,
+        ])
+      } else {
+        console.log('2T: equal reaction')
+        await conn.execute('delete from like_records where diary_id = ? and selecter = ?', [diary, userInfo])
+      }
+    } else {
+      console.log('2F: add reaction')
+      await conn.execute('insert into like_records (diary_id, selecter, reaction) values (?, ?, ?)', [
+        diary,
+        userInfo,
+        rating
+      ])
+    }
+
+    return c.json({ success: true })
+  } catch (e) {
+    console.log(e)
+    return c.json({ msg: 'db err', err: e }, 500)
+  }
+})
+
+diaryApi.use(optionalJwtMiddleware)
+
+/*
+  # api/diary/v1/:id
+  -> 원하는 일기 받아오기
+*/
+export interface DiaryResponse {
+  success: boolean
+  data?: ''
+  error?: string
+}
+
+export interface Diary {
+  id: number
+  writer: number
+  username: string
+  title: string
+  content: string
+  state: string
+  likes_count: number
+  dislikes_count: number
+  created_at: number
+}
+
+const validateDiaryRes = (diary: any): Diary | null => {
+  if (!diary || typeof diary !== 'object') {
+    return null
+  }
+
+  const needKey = [
+    'id',
+    'username',
+    'writer',
+    'title',
+    'content',
+    'state',
+    'likes_count',
+    'dislikes_count',
+    'created_at',
+  ]
+
+  for (let key in diary) {
+    if (!needKey.includes(key)) {
+      return null
+    }
+  }
+
+  return diary
+}
+
+diaryApi.get('/v1/:id', async (c) => {
+  const id = c.req.param('id')
+
+  try {
+    const connection = connect({ url: c.env.DB_USER_URL })
+    const diaryRes = await connection.execute(
+      'select d.*, u.username from diaries d join users u on d.writer = u.id where d.id = ?',
+      [id],
+    )
+    const diary = validateDiaryRes(diaryRes[0])
+
+    if (diary === null) {
+      return c.json({ msg: 'faild user validate' }, 400)
+    }
+
+    return c.json({ data: diary }, 200)
+  } catch (e) {
+    return c.json({}, 500)
   }
 })
