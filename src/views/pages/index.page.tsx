@@ -37,7 +37,7 @@ export const MainPage: FC<MainPageProps> = (props) => {
   )
 }
 
-export const IndexSelect: FC<ContainerProps> = (props) => {
+const IndexSelect: FC<ContainerProps> = (props) => {
   if (props.isLoggined) {
     return (
       <div className="select-container">

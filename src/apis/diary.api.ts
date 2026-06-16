@@ -6,9 +6,11 @@
 import { Hono } from 'hono'
 import { Binding, Variable } from '..'
 import { connect } from '@tidbcloud/serverless'
-import { strictJwtMiddleware } from '../middleware.ts/jwt.mw'
+import { optionalJwtMiddleware, strictJwtMiddleware } from '../middleware.ts/jwt.mw'
 
 export const diaryApi = new Hono<{ Bindings: Binding; Variables: Variable }>()
+
+diaryApi.use(optionalJwtMiddleware)
 
 /*
   # /api/diary/v1/random?count={count}
@@ -54,6 +56,80 @@ diaryApi.get('/v1/random', async (c) => {
     return c.json({ success: false, error: 'DB 연결 에러' + e } as RandomDiaryResponse, 500)
   }
 }) // api/diary/v1/random?count=?
+
+/*
+  # api/diary/v1/:id
+  -> 원하는 일기 받아오기
+*/
+export interface DiaryResponse {
+  success: boolean
+  data?: ''
+  error?: string
+}
+
+export interface Diary {
+  id: number
+  writer: number
+  username: string
+  title: string
+  content: string
+  state: string
+  likes_count: number
+  dislikes_count: number
+  created_at: number
+}
+
+const validateDiaryRes = (diary: any): Diary | null => {
+  if (!diary || typeof diary !== 'object') {
+    return null
+  }
+
+  console.log(diary)
+
+  const needKey = [
+    'id',
+    'username',
+    'writer',
+    'title',
+    'content',
+    'state',
+    'likes_count',
+    'dislikes_count',
+    'created_at',
+  ]
+
+  for (let key in diary) {
+    if (!needKey.includes(key)) {
+      console.log('key err, key: ', key)
+      return null
+    }
+  }
+
+  return diary
+}
+
+diaryApi.get('/v1/:id', async (c) => {
+  const id = c.req.param('id')
+
+  try {
+    const connection = connect({ url: c.env.DB_USER_URL })
+    const diaryRes = await connection.execute(
+      'select d.*, u.username from diaries d join users u on d.writer = u.id where d.id = ?',
+      [id],
+    )
+    const diary = validateDiaryRes(diaryRes[0])
+
+    console.log(diary)
+
+    if (diary === null) {
+      return c.json({ msg: 'faild user validate' }, 400)
+    }
+
+    return c.json({ data: diary }, 200)
+  } catch (e) {
+    return c.json({}, 500)
+  }
+})
 
 diaryApi.use(strictJwtMiddleware)
 
@@ -166,7 +242,7 @@ diaryApi.post('/v1/new', async (c) => {
       ])
 
       const redirectUrl = await connection.execute(
-        'select id from diaries where writer = ? and now() - created_at < 60 order by desc limit 1',
+        'select id from diaries where writer = ? order by created_at desc, id desc limit 1',
         [writer],
       )
 
