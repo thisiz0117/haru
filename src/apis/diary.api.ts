@@ -160,6 +160,47 @@ diaryApi.post('/v1/new', strictJwtMiddleware, async (c) => {
 })
 
 /*
+  # Get Current Reaction
+  # api/diary/v1/current-rating?diary=?
+*/
+diaryApi.get('/v1/current-rating', strictJwtMiddleware, async (c) => {
+  const diaryIdQuery = c.req.query('diary')
+
+  if (!diaryIdQuery) {
+    return c.json({ msg: 'diary id가 존재하지 않음' }, 400)
+  }
+
+  const diaryId = parseInt(diaryIdQuery, 10)
+  
+  if (isNaN(diaryId)) {
+    return c.json({ msg: 'diary id 잘못됨' }, 400)
+  }
+
+  const userId = c.get('acsTknPayload').user.id
+
+  try {
+    const conn = connect({ url: c.env.DB_USER_URL })
+
+    const rows = await conn.execute(
+      'select reaction from like_records where diary_id = ? and selecter = ?',
+      [diaryId, userId]
+    )
+
+    if (rows.length === 0) {
+      return c.json({ reaction: 'default' }, 200)
+    }
+
+    const row = rows[0] as { reaction: string }
+    return c.json({ reaction: row.reaction }, 200)
+
+  } catch (e) {
+    console.error('DB Error:', e) 
+    return c.json({ msg: 'db err', err: String(e) }, 500)
+  }
+})
+
+
+/*
   # addLikeService
   # api/diary/v1/like?diary={id}&=rating={u, d}
 */

@@ -1,121 +1,86 @@
-/*
-  0: 아무 일도 안 일어남
-  1: 좋아요
-  2: 싫어요
-*/
-let clickState = 0
+const diaryId = window.location.href.split('/').pop()
 
 const likeBtn = document.getElementById('like-btn')
 const dislikeBtn = document.getElementById('dislike-btn')
 
-const currentPageUrl = window.location.href
-const diaryId = currentPageUrl.split('/').pop()
+let likeCount = Number(likeBtn.dataset.likesCount)
+let dislikeCount = Number(dislikeBtn.dataset.dislikesCount)
 
-let likesCount = Number(likeBtn.dataset.likesCount)
-let dislikesCount = Number(likeBtn.dataset.dislikesCount)
+let ratingStatus = 0 // default = 0, like = 1, dislike = 2
 
-const ratingHandler = (status = clickState, change) => {
-  if (status === 0) {
-    if (change === 1) {
-      likesCount++
-      clickState = 1
-    } else {
-      dislikesCount++
-      clickState = 2
-    }
-  } else if (status === 1) {
-    if (change === 1) {
-      likesCount--
-      clickState = 0
-    } else {
-      likesCount--
-      dislikesCount++
-      clickState = 2
-    }
+const getCurrentRating = async () => {
+  const res = await fetch(`http://localhost:8787/api/diary/v1/current-rating?diary=${diaryId}`, {
+    method: 'GET',
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    ratingStatus = 0
+  } else if ((!'reaction') in data) {
+    ratingStatus = 0
   } else {
-    if (change === 1) {
-      dislikesCount--
-      likesCount++
-      clickState = 1
+    if (data.reaction == 'default') {
+      ratingStatus = 0
+    } else if (data.reaction === 'like') {
+      ratingStatus = 1
     } else {
-      dislikesCount--
-      clickState = 0
+      ratingStatus = 2
     }
   }
-
-  return updateRatingStatus()
 }
 
-const updateRatingStatus = () => {
-  likeBtn.textContent = '좋아요: ' + likesCount
-  dislikeBtn.textContent = '싫어요: ' + dislikesCount
+getCurrentRating()
+
+const toggleRating = (rating) => {
+  if (rating === 'like') {
+    if (ratingStatus === 1) {
+      ratingStatus = 0
+      likeBtn.textContent = '좋아요: ' + --likeCount
+    } else if (ratingStatus === 2) {
+      ratingStatus = 1
+      likeBtn.textContent = '좋아요: ' + ++likeCount
+      dislikeBtn.textContent = '싫어요: ' + --dislikeCount
+    } else {
+      ratingStatus = 1
+      likeBtn.textContent = '좋아요: ' + ++likeCount
+    }
+  } else {
+    if (ratingStatus === 1) {
+      ratingStatus = 2
+      dislikeBtn.textContent = '싫어요: ' + ++dislikeCount
+      likeBtn.textContent = '좋아요: ' + --likeCount
+    } else if (ratingStatus === 2) {
+      ratingStatus = 0
+      dislikeBtn.textContent = '싫어요: ' + --dislikeCount
+    } else {
+      ratingStatus = 2
+      dislikeBtn.textContent = '싫어요: ' + ++dislikeCount
+    }
+  }
 }
 
-likeBtn.addEventListener('click', async (e) => {
-  e.preventDefault()
+likeBtn.addEventListener('click', async (c) => {
+  console.log('like clicked')
 
   try {
     const response = await fetch(`http://localhost:8787/api/diary/v1/rating?diary=${diaryId}&rating=like`, {
       method: 'GET',
     })
 
-    if (!response.ok) {
-      return console.error(response.body, response.status)
-    }
-
-    // { success: true }
     const data = await response.json()
 
-    if ((!'success') in data && (!'do') in data) {
-      return console.error('data 형식 잘못됨')
+    if (!response.ok) {
+      return console.error({ msg: 'like rating api response not ok', err: data })
     }
 
-    switch (data.do) {
-      case 'R-N-EQ-U':
-        ratingHandler(2)
-        break
-      case 'R-EQ-D':
-        ratingHandler(0)
-        break
-      case 'N-R-I':
-        ratingHandler(1)
-        break
-    }
+    return toggleRating('like')
   } catch (e) {
-    return console.error('fetch err: ', e)
+    return console.error('like rating fetch err: ', e)
   }
 })
 
-dislikeBtn.addEventListener('click', async (e) => {
-  e.preventDefault()
-
-  try {
-    const response = await fetch(`http://localhost:8787/api/diary/v1/rating?diary=${diaryId}&rating=dislike`, {
-      method: 'GET',
-    })
-
-    if (!response.ok) {
-      return console.error(response.body, response.status)
-    }
-
-    const data = await response.json()
-
-    if ((!'success') in data && (!'do') in data) {
-      return console.error('data 형식 잘못됨')
-    }
-
-    switch (data.do) {
-      case 'R-N-EQ-U':
-        ratingHandler(2)
-        break
-      case 'R-EQ-D':
-        ratingHandler(0)
-        break
-      case 'N-R-I':
-        ratingHandler(1)
-        break
-    }
-  } catch (e) {
-    return console.error('fetch err: ', e)
-  }
+dislikeBtn.addEventListener('click', (c) => {
+  console.log('dislike clicked')
+  toggleRating('dislike')
 })

@@ -44,7 +44,7 @@ export const DiaryPage: FC<DiaryProps> = (props) => {
         <br />
         <br />
         <Rating likesCount={props.likes_count} dislikeCount={props.dislikes_count} />
-        {html`<script src="/scripts/diary-page"></script>`}
+        {html`<script src="/scripts/diary-page.js"></script>`}
       </>
     )
   }
