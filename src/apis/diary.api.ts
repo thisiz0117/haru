@@ -171,7 +171,7 @@ diaryApi.get('/v1/current-rating', strictJwtMiddleware, async (c) => {
   }
 
   const diaryId = parseInt(diaryIdQuery, 10)
-  
+
   if (isNaN(diaryId)) {
     return c.json({ msg: 'diary id 잘못됨' }, 400)
   }
@@ -181,10 +181,10 @@ diaryApi.get('/v1/current-rating', strictJwtMiddleware, async (c) => {
   try {
     const conn = connect({ url: c.env.DB_USER_URL })
 
-    const rows = await conn.execute(
-      'select reaction from like_records where diary_id = ? and selecter = ?',
-      [diaryId, userId]
-    )
+    const rows = await conn.execute('select reaction from like_records where diary_id = ? and selecter = ?', [
+      diaryId,
+      userId,
+    ])
 
     if (rows.length === 0) {
       return c.json({ reaction: 'default' }, 200)
@@ -192,13 +192,66 @@ diaryApi.get('/v1/current-rating', strictJwtMiddleware, async (c) => {
 
     const row = rows[0] as { reaction: string }
     return c.json({ reaction: row.reaction }, 200)
-
   } catch (e) {
-    console.error('DB Error:', e) 
+    console.error('DB Error:', e)
     return c.json({ msg: 'db err', err: String(e) }, 500)
   }
 })
 
+/*
+  # api/diary/v1/edit
+*/
+export interface EditApiResponse {
+  isSuccess: boolean
+  data?: any
+  error?: string | object
+}
+
+const isPublicOrPrivate = (publicState: unknown): publicState is 'public' | 'private' | undefined => {
+  return publicState === 'public' || publicState === 'private' || publicState === undefined
+}
+
+diaryApi.put('/v1/edit', strictJwtMiddleware, async (c) => {
+  // body 받아오기
+  // -> 있는지 없는지 체크
+  const body = await c.req.parseBody()
+
+  const needKey = ['id', 'title', 'content', 'publicState']
+
+  for (let key of needKey) {
+    if (!body[key]) {
+      return c.json({ isSuccess: false, error: "필요 body 값 '" + key + "'가 없음" } as EditApiResponse, 400)
+    }
+  }
+
+  // 검증하기
+  // -> 본인이 쓴 거 맞는지, 타입 맞는지
+  try {
+    const conn = connect({ url: c.env.DB_USER_URL })
+
+    // 유저 본인이 쓴건지 검증
+    const userId = c.get('acsTknPayload').user.id
+    const writerCheck = await conn.execute('select 1 as `isWriter` from diaries where id = ? and writer = ?', [
+      body.id,
+      userId,
+    ]) as {isWriter: 1 | 0}[]
+
+    if(!writerCheck[0].isWriter) {
+      return c.json({isSuccess: false, error: '작성자 확인 불가'} as EditApiResponse, 400)
+    }
+
+    // db 업데이트하기
+    // -> 업데이트
+    await conn.execute('update diaries set title = ?, content = ?, state = ? where id = ? and writer = ?', 
+      [body.title, body.content, body.publicState, body.id, userId]
+    )
+  } catch (e) {
+    return c.json({ isSuccess: false, error: 'db err' + e } as EditApiResponse, 500)
+  }
+
+  // 반환하기
+  return c.redirect(`/diary/${body.id}`, 302)
+})
 
 /*
   # addLikeService
