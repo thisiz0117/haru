@@ -216,7 +216,7 @@ diaryApi.put('/v1/edit', strictJwtMiddleware, async (c) => {
   // -> 있는지 없는지 체크
   const body = await c.req.parseBody()
 
-  const needKey = ['id', 'title', 'content', 'publicState']
+  const needKey = ['id', 'title', 'content', 'isPublic']
 
   for (let key of needKey) {
     if (!body[key]) {
@@ -243,14 +243,14 @@ diaryApi.put('/v1/edit', strictJwtMiddleware, async (c) => {
     // db 업데이트하기
     // -> 업데이트
     await conn.execute('update diaries set title = ?, content = ?, state = ? where id = ? and writer = ?', 
-      [body.title, body.content, body.publicState, body.id, userId]
+      [body.title, body.content, body.isPublic, body.id, userId]
     )
   } catch (e) {
     return c.json({ isSuccess: false, error: 'db err' + e } as EditApiResponse, 500)
   }
 
   // 반환하기
-  return c.redirect(`/diary/${body.id}`, 302)
+  return c.json({isSuccess: true, data: `/diary/${body.id}`} as EditApiResponse)
 })
 
 /*
