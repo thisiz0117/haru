@@ -231,26 +231,30 @@ diaryApi.put('/v1/edit', strictJwtMiddleware, async (c) => {
 
     // 유저 본인이 쓴건지 검증
     const userId = c.get('acsTknPayload').user.id
-    const writerCheck = await conn.execute('select 1 as `isWriter` from diaries where id = ? and writer = ?', [
+    const writerCheck = (await conn.execute('select 1 as `isWriter` from diaries where id = ? and writer = ?', [
       body.id,
       userId,
-    ]) as {isWriter: 1 | 0}[]
+    ])) as { isWriter: 1 | 0 }[]
 
-    if(!writerCheck[0].isWriter) {
-      return c.json({isSuccess: false, error: '작성자 확인 불가'} as EditApiResponse, 400)
+    if (!writerCheck[0].isWriter) {
+      return c.json({ isSuccess: false, error: '작성자 확인 불가' } as EditApiResponse, 400)
     }
 
     // db 업데이트하기
     // -> 업데이트
-    await conn.execute('update diaries set title = ?, content = ?, state = ? where id = ? and writer = ?', 
-      [body.title, body.content, body.isPublic, body.id, userId]
-    )
+    await conn.execute('update diaries set title = ?, content = ?, state = ? where id = ? and writer = ?', [
+      body.title,
+      body.content,
+      body.isPublic,
+      body.id,
+      userId,
+    ])
   } catch (e) {
     return c.json({ isSuccess: false, error: 'db err' + e } as EditApiResponse, 500)
   }
 
   // 반환하기
-  return c.json({isSuccess: true, data: `/diary/${body.id}`} as EditApiResponse)
+  return c.json({ isSuccess: true, data: `/diary/${body.id}` } as EditApiResponse)
 })
 
 /*
@@ -344,6 +348,51 @@ diaryApi.get('/v1/rating', strictJwtMiddleware, async (c) => {
   } catch (e) {
     console.log(e)
     return c.json({ msg: 'db err', err: e }, 500)
+  }
+})
+
+/*
+  # DELETE: api/diary/v1/:id
+*/
+export interface DeleteDiaryApiResponse {
+  isSuccess: boolean
+  error?: string
+}
+
+diaryApi.delete('/v1/:id', strictJwtMiddleware, async (c) => {
+  // id 받기
+  const diaryIdParam = c.req.param('id')
+  if (!diaryIdParam) {
+    return c.json({ isSuccess: false, error: 'id가 존재하지 않습니다' } as DeleteDiaryApiResponse, 400)
+  }
+
+  let diaryId: number
+
+  if (isNaN((diaryId = parseInt(diaryIdParam, 10)))) {
+    return c.json({ isSuccess: false, error: 'id가 잘못된 형식입니다' } as DeleteDiaryApiResponse, 400)
+  }
+
+  try {
+    const conn = connect({ url: c.env.DB_USER_URL })
+
+    // 작성자 확인
+    const userId = c.get('acsTknPayload').user.id
+    const writerCheck = (await conn.execute('select 1 as `isWriter` from diaries where id = ? and writer = ?', [
+      diaryId,
+      userId,
+    ])) as { isWriter: 1 | 0 }[]
+
+    if (!writerCheck[0].isWriter) {
+      return c.json({ isSuccess: false, error: '작성자 확인 불가' } as EditApiResponse, 400)
+    }
+
+    // 글 제거
+    await conn.execute('delete from diaries where id = ? and writer = ?', [diaryId, userId])
+    
+    // 반환
+    return c.json({isSuccess: true} as DeleteDiaryApiResponse)
+  } catch (e) {
+    return c.json({ isSuccess: false, error: 'db err' + e } as DeleteDiaryApiResponse, 500)
   }
 })
 
